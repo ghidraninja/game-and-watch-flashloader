@@ -61,8 +61,7 @@ void  OSPI_Reset(OSPI_HandleTypeDef *hospi)
 
 void  OSPI_ChipErase(OSPI_HandleTypeDef *hospi)
 {
-  uint32_t done = 0;
-  uint8_t buf[1];
+  uint8_t status;
   OSPI_RegularCmdTypeDef  sCommand;
 
   memset(&sCommand, 0x0, sizeof(sCommand));
@@ -85,18 +84,17 @@ void  OSPI_ChipErase(OSPI_HandleTypeDef *hospi)
   }
 
   // Wait for Write In Progress Bit to be zero
-  while (!done) {
-    OSPI_ReadBytes(hospi, 0x05, buf, 1);
-    done = (buf[0] & 0x01) == 0x00;
-
+  do {
+    OSPI_ReadBytes(hospi, 0x05, &status, 1);
     HAL_Delay(100);
-  }
+  } while((status & 0x01) == 0x01);
 }
 
 
 
 void  _OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
 {
+  uint8_t status;
   char data[256+3];
   memset(data, 0x00, 259);
   OSPI_RegularCmdTypeDef  sCommand;
@@ -129,6 +127,12 @@ void  _OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer
   if(HAL_OSPI_Transmit(hospi, buffer, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
     Error_Handler();
   }
+
+  // Wait for Write In Progress Bit to be zero
+  do {
+    OSPI_ReadBytes(hospi, 0x05, &status, 1);
+  } while((status & 0x01) == 0x01);
+
 }
 
 void  OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size) {
@@ -138,7 +142,6 @@ void  OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer,
     OSPI_NOR_WriteEnable(hospi);
     _OSPI_Program(hospi, i * 256, buffer + (i * 256), buffer_size > 256 ? 256 : buffer_size);
     buffer_size -= 256;
-    HAL_Delay(2);
   }
 }
 
