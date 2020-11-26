@@ -175,6 +175,14 @@ SECTIONS
     . = ALIGN(8);
   } >DTCMRAM
 
+  ._persistent :
+  {
+    . = ALIGN(8);
+    *(.persistent)
+    . = ALIGN(8);
+  } >DTCMRAM
+
+  
   
 
   /* Remove information from the standard libraries */

@@ -49,9 +49,13 @@ SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
 
-uint16_t audiobuffer[48000] __attribute__((section (".audio")));
 uint8_t logbuf[1024 * 4];
 uint32_t log_idx;
+
+// This tells the loader how much and where to program in the flash
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_size;
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_address;
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_magic;
 
 /* USER CODE END PV */
 
@@ -126,6 +130,11 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+  // Check that the magic has been set correctly
+  if (program_magic != 0xdeadbeef) {
+    Error_Handler();
+  }
+
   // SPI_MODE or QUAD_MODE
   quad_mode_t quad_mode = QUAD_MODE;
 
@@ -142,7 +151,7 @@ int main(void)
 
   uint32_t ram_address = 0x24000000;
   uint8_t *ram = (uint8_t*)ram_address;
-  OSPI_Program(&hospi1, 0x0, ram, 1024*1024);
+  OSPI_Program(&hospi1, program_address, ram, program_size);
 #endif
 
   OSPI_EnableMemoryMappedMode(&hospi1);
