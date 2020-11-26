@@ -50,6 +50,8 @@ SPI_HandleTypeDef hspi2;
 /* USER CODE BEGIN PV */
 
 uint16_t audiobuffer[48000] __attribute__((section (".audio")));
+uint8_t logbuf[1024 * 4];
+uint32_t log_idx;
 
 /* USER CODE END PV */
 
@@ -74,6 +76,19 @@ void lcd_backlight_on() {
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+}
+
+int _write(int file, char *ptr, int len)
+{
+  if (log_idx + len + 1 > sizeof(logbuf)) {
+    log_idx = 0;
+  }
+
+  memcpy(&logbuf[log_idx], ptr, len);
+  log_idx += len;
+  logbuf[log_idx + 1] = '\0';
+
+  return len;
 }
 
 /* USER CODE END 0 */
@@ -111,20 +126,27 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+  // SPI_MODE or QUAD_MODE
+  quad_mode_t quad_mode = QUAD_MODE;
 
-  OSPI_Reset(&hospi1);
-  HAL_Delay(200);
+  // VENDOR_MX:   MX25U8035F, Nintendo Stock Flash
+  // VENDOR_ISSI: IS25WP128F, 128Mb large flash
+  spi_chip_vendor_t vendor = VENDOR_MX;
+
+  OSPI_Init(&hospi1, quad_mode, vendor);
+
+  // Set to 0 if you only want to enable flash read memory mapping
+#if 1
   OSPI_NOR_WriteEnable(&hospi1);
-  HAL_Delay(200);
   OSPI_ChipErase(&hospi1);
-  // void  _OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
+
   uint32_t ram_address = 0x24000000;
   uint8_t *ram = (uint8_t*)ram_address;
-  // memset(ram, 0xAA, 1024*1024);
-  // OSPI_NOR_WriteEnable(&hospi1);
-  HAL_Delay(200);
   OSPI_Program(&hospi1, 0x0, ram, 1024*1024);
-  
+#endif
+
+  OSPI_EnableMemoryMappedMode(&hospi1);
+
   // Flashing done!
   while(1) {
     HAL_Delay(1000);
