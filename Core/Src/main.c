@@ -55,7 +55,12 @@ uint32_t log_idx;
 // This tells the loader how much and where to program in the flash
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_size;
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_address;
+
+// This is set by openocd in order to guarantee that we don't start flashing by accident
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_magic;
+
+// This can be read by openocd to see when programming is done
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_done;
 
 /* USER CODE END PV */
 
@@ -135,6 +140,8 @@ int main(void)
     Error_Handler();
   }
 
+  program_done = 0;
+
   // SPI_MODE or QUAD_MODE
   quad_mode_t quad_mode = QUAD_MODE;
 
@@ -157,6 +164,8 @@ int main(void)
   OSPI_EnableMemoryMappedMode(&hospi1);
 
   // Flashing done!
+  program_done = 0xcafef00d;
+
   while(1) {
     HAL_Delay(1000);
     lcd_backlight_off();

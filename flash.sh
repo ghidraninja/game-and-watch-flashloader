@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ELF=${DIR}/build/gw_base.elf
@@ -37,6 +37,8 @@ function get_symbol {
 VAR_program_size=$(printf '0x%08x\n' $(get_symbol "program_size"))
 VAR_program_address=$(printf '0x%08x\n' $(get_symbol "program_address"))
 VAR_program_magic=$(printf '0x%08x\n' $(get_symbol "program_magic"))
+VAR_program_done=$(printf '0x%08x\n' $(get_symbol "program_done"))
+
 
 echo "Loading image into RAM..."
 openocd -f ${DIR}/adapter_config.cfg \
@@ -52,8 +54,16 @@ openocd -f ${DIR}/adapter_config.cfg \
     -c "mww ${VAR_program_address} ${ADDRESS}" \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "echo \"Starting flash process\";" \
-    -c "resume;" \
-
+    -c "resume; exit;"
 
 echo "Please wait til the screen blinks once per second."
 echo "(Rapid blinking means an error occured)"
+
+while true; do
+    DONE_MAGIC=$(openocd -f ${DIR}/adapter_config.cfg -c "mdw ${VAR_program_done}" -c "exit;" 2>&1 | grep ${VAR_program_done} | cut -d" " -f2)
+    if [[ "$DONE_MAGIC" == "cafef00d" ]]; then
+        echo "Done!"
+        break;
+    fi
+    sleep 1
+done
