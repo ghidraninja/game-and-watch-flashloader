@@ -2,6 +2,6 @@
 #define _FLASH_H_
 
 #include "stm32h7xx_hal.h"
-void flash_memory_map(OSPI_HandleTypeDef *hospi1);
+void OSPI_EnableMemoryMappedMode(OSPI_HandleTypeDef *hospi1, uint32_t quad_mode);
 
 #endif

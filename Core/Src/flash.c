@@ -1,5 +1,33 @@
 #include "flash.h"
 
+void OSPI_ReadBytes(OSPI_HandleTypeDef *hospi, uint8_t instruction, uint8_t *data, size_t len)
+{
+  OSPI_RegularCmdTypeDef  sCommand;
+  memset(&sCommand, 0x0, sizeof(sCommand));
+  sCommand.OperationType         = HAL_OSPI_OPTYPE_COMMON_CFG;
+  sCommand.FlashId               = 0;
+  sCommand.Instruction           = instruction;
+  sCommand.InstructionMode       = HAL_OSPI_INSTRUCTION_1_LINE;
+  sCommand.InstructionSize       = HAL_OSPI_INSTRUCTION_8_BITS;
+  
+  sCommand.AddressMode           = HAL_OSPI_ADDRESS_NONE;
+  sCommand.AlternateBytesMode    = HAL_OSPI_ALTERNATE_BYTES_NONE;
+  sCommand.DataMode              = HAL_OSPI_DATA_1_LINE;
+  sCommand.NbData                = len;
+  sCommand.DummyCycles           = 0;
+  sCommand.DQSMode               = HAL_OSPI_DQS_DISABLE;
+  sCommand.SIOOMode              = HAL_OSPI_SIOO_INST_EVERY_CMD;
+  sCommand.InstructionDtrMode    = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
+  if (HAL_OSPI_Command(hospi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if(HAL_OSPI_Receive(hospi, data, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
+    Error_Handler();
+  }
+}
+
 void  OSPI_Reset(OSPI_HandleTypeDef *hospi)
 {
   OSPI_RegularCmdTypeDef  sCommand;
@@ -33,7 +61,10 @@ void  OSPI_Reset(OSPI_HandleTypeDef *hospi)
 
 void  OSPI_ChipErase(OSPI_HandleTypeDef *hospi)
 {
+  uint32_t done = 0;
+  uint8_t buf[1];
   OSPI_RegularCmdTypeDef  sCommand;
+
   memset(&sCommand, 0x0, sizeof(sCommand));
   sCommand.OperationType         = HAL_OSPI_OPTYPE_COMMON_CFG;
   sCommand.FlashId               = 0;
@@ -52,8 +83,14 @@ void  OSPI_ChipErase(OSPI_HandleTypeDef *hospi)
   {
     Error_Handler();
   }
-  // yolo
-  HAL_Delay(10000);
+
+  // Wait for Write In Progress Bit to be zero
+  while (!done) {
+    OSPI_ReadBytes(hospi, 0x05, buf, 1);
+    done = (buf[0] & 0x01) == 0x00;
+
+    HAL_Delay(100);
+  }
 }
 
 
@@ -132,49 +169,52 @@ void  OSPI_NOR_WriteEnable(OSPI_HandleTypeDef *hospi)
 }
 
 
-void flash_memory_map(OSPI_HandleTypeDef *spi) {
+void OSPI_EnableMemoryMappedMode(OSPI_HandleTypeDef *spi, uint32_t quad_mode) {
   OSPI_MemoryMappedTypeDef sMemMappedCfg;
 
   OSPI_RegularCmdTypeDef sCommand = {
-    .Instruction = 0xeb, // 4READ
+    .Instruction = 0x0b, // FAST READ
     .InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE,
     .SIOOMode = HAL_OSPI_SIOO_INST_EVERY_CMD,
     .AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE,
-    .AddressMode = HAL_OSPI_ADDRESS_4_LINES,
+    .AddressMode = HAL_OSPI_ADDRESS_1_LINE,
     .OperationType = HAL_OSPI_OPTYPE_READ_CFG,
     .FlashId = 0,
     .InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE,
     .InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS,
     .AddressDtrMode = HAL_OSPI_ADDRESS_DTR_DISABLE,
-    .DataMode = HAL_OSPI_DATA_4_LINES,
+    .DataMode = HAL_OSPI_DATA_1_LINE,
     .DataDtrMode = HAL_OSPI_DATA_DTR_DISABLE,
     .DQSMode = HAL_OSPI_DQS_DISABLE,
     .AddressSize = HAL_OSPI_ADDRESS_24_BITS,
-    .SIOOMode = HAL_OSPI_SIOO_INST_EVERY_CMD, // HAL_OSPI_SIOO_INST_ONLY_FIRST_CMD
-    // .SIOOMode = HAL_OSPI_SIOO_INST_ONLY_FIRST_CMD,
-    .DummyCycles = 4,
-    // .AlternateBytesSize = 1, //HAL_OSPI_ALTERNATE_BYTES_8_BITS, // ??? firmware uses '1' ??
-    .AlternateBytesSize = HAL_OSPI_ALTERNATE_BYTES_8_BITS, // ??? firmware uses '1' ??
-    .NbData = 1, // Data length
+    .SIOOMode = HAL_OSPI_SIOO_INST_EVERY_CMD,
+    .DummyCycles = 8,
+    .AlternateBytesSize = HAL_OSPI_ALTERNATE_BYTES_8_BITS,
+    .AlternateBytes = 0x00,
+    .NbData = 0,
     .AlternateBytes = 0x00,
   };
 
-  sCommand.OperationType = HAL_OSPI_OPTYPE_WRITE_CFG;
-  sCommand.Instruction = 0x38; /* 4PP / 4 x page program */ // LINEAR_BURST_WRITE;
-  sCommand.DummyCycles = 0; //DUMMY_CLOCK_CYCLES_SRAM_WRITE;
-  if (HAL_OSPI_Command(spi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) !=
-      HAL_OK) {
-    Error_Handler();
+  if (quad_mode) {
+    sCommand.Instruction = 0xeb;
+    sCommand.AddressMode = HAL_OSPI_ADDRESS_4_LINES;
+    sCommand.DataMode = HAL_OSPI_DATA_4_LINES;
+    sCommand.DummyCycles = 6;
   }
-  /* Memory-mapped mode configuration for Linear burst read operations */
-  sCommand.OperationType = HAL_OSPI_OPTYPE_READ_CFG;
-  sCommand.Instruction = 0xEB; /* 4READ */  //LINEAR_BURST_READ;
-  sCommand.DummyCycles = 6; //DUMMY_CLOCK_CYCLES_SRAM_READ;
 
+  /* Memory-mapped mode configuration for Linear burst read operations */
   if (HAL_OSPI_Command(spi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) !=
       HAL_OK) {
     Error_Handler();
   }
+
+  // Use read instruction for write (in order to not alter the flash by accident)
+  sCommand.OperationType = HAL_OSPI_OPTYPE_WRITE_CFG;
+  if (HAL_OSPI_Command(spi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) !=
+      HAL_OK) {
+    Error_Handler();
+  }
+
   /*Disable timeout counter for memory mapped mode*/
   sMemMappedCfg.TimeOutActivation = HAL_OSPI_TIMEOUT_COUNTER_DISABLE;
   sMemMappedCfg.TimeOutPeriod = 0;
