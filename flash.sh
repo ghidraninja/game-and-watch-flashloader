@@ -7,10 +7,14 @@ ELF=${DIR}/build/gw_base.elf
 ADDRESS=0
 SIZE=$((1024 * 1024))
 MAGIC="0xdeadbeef"
+ERASE=1
 
 if [[ $# -lt 1 ]]; then
-    echo "Usage: flash.sh <binary to flash> [address in flash] [size]"
+    echo "Usage: flash.sh <binary to flash> [address in flash] [size] [erase=1]"
     echo "Note! Destination address must be aligned to 256 bytes."
+    echo "'address in flash': Where to program to. 0x000000 is the start of the flash. "
+    echo "'size': Size of the binary to flash. Ideally aligned to 256 bytes."
+    echo "'erase': If '0', chip erase will be skipped. Default '1'."
     exit
 fi
 
@@ -22,6 +26,10 @@ fi
 
 if [[ $# -gt 2 ]]; then
     SIZE=$3
+fi
+
+if [[ $# -gt 3 ]]; then
+    ERASE=$4
 fi
 
 objdump=${OBJDUMP:-arm-none-eabi-objdump}
@@ -38,6 +46,7 @@ VAR_program_size=$(printf '0x%08x\n' $(get_symbol "program_size"))
 VAR_program_address=$(printf '0x%08x\n' $(get_symbol "program_address"))
 VAR_program_magic=$(printf '0x%08x\n' $(get_symbol "program_magic"))
 VAR_program_done=$(printf '0x%08x\n' $(get_symbol "program_done"))
+VAR_program_erase=$(printf '0x%08x\n' $(get_symbol "program_erase"))
 
 
 echo "Loading image into RAM..."
@@ -53,6 +62,7 @@ openocd -f ${DIR}/adapter_config.cfg \
     -c "mww ${VAR_program_size} ${SIZE}" \
     -c "mww ${VAR_program_address} ${ADDRESS}" \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
+    -c "mww ${VAR_program_erase} ${ERASE}" \
     -c "echo \"Starting flash process\";" \
     -c "resume; exit;"
 

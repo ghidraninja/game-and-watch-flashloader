@@ -62,6 +62,15 @@ __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_
 // This can be read by openocd to see when programming is done
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_done;
 
+// Control if chip should be erased or not
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase;
+
+// Size of the flash
+// TODO: Make configurable from openocd
+// Number of address bits. 20=1M, 24=16M
+uint32_t program_device_size = 20;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -154,7 +163,10 @@ int main(void)
   // Set to 0 if you only want to enable flash read memory mapping
 #if 1
   OSPI_NOR_WriteEnable(&hospi1);
-  OSPI_ChipErase(&hospi1);
+
+  if (program_erase) {
+    OSPI_ChipErase(&hospi1);
+  }
 
   uint32_t ram_address = 0x24000000;
   uint8_t *ram = (uint8_t*)ram_address;
@@ -284,7 +296,7 @@ static void MX_OCTOSPI1_Init(void)
   hospi1.Init.FifoThreshold = 4;
   hospi1.Init.DualQuad = HAL_OSPI_DUALQUAD_DISABLE;
   hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MACRONIX;
-  hospi1.Init.DeviceSize = 20;
+  hospi1.Init.DeviceSize = program_device_size; // Number of address bits. 20=1M, 24=16M
   hospi1.Init.ChipSelectHighTime = 2;
   hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
   hospi1.Init.ClockMode = HAL_OSPI_CLOCK_MODE_0;
