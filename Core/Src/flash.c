@@ -40,10 +40,10 @@ void OSPI_ReadBytes(OSPI_HandleTypeDef *hospi, uint8_t instruction, uint8_t *dat
   sCommand.SIOOMode              = HAL_OSPI_SIOO_INST_EVERY_CMD;
   sCommand.InstructionDtrMode    = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
 
-  if (g_vendor == VENDOR_ISSI) {
-    set_cmd_lines(&sCommand, g_quad_mode, g_vendor, 0, 1);
-  } else {
+  if (g_vendor == VENDOR_MX) {
     set_cmd_lines(&sCommand, SPI_MODE, g_vendor, 0, 1);
+  } else if (g_vendor == VENDOR_ISSI) {
+    set_cmd_lines(&sCommand, g_quad_mode, g_vendor, 0, 1);
   }
 
   if (HAL_OSPI_Command(hospi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
@@ -105,9 +105,25 @@ void OSPI_Init(OSPI_HandleTypeDef *hospi, quad_mode_t quad_mode, spi_chip_vendor
   g_vendor = vendor;
   g_quad_mode = quad_mode;
 
-  if (quad_mode == QUAD_MODE && vendor == VENDOR_ISSI) {
-    // Enable QPI mode
-    OSPI_WriteBytes(hospi, 0x35, 0, NULL, 0, SPI_MODE);
+  if (quad_mode == QUAD_MODE) {
+    if (vendor == VENDOR_MX) {
+      // WRSR - Write Status Register
+      // Set Quad Enable bit (6) in status register. Other bits = 0.
+      uint8_t wr_status = 1<<6;
+      uint8_t rd_status = 0xff;
+
+      // Enable write to be allowed to change the status register
+      OSPI_NOR_WriteEnable(hospi);
+
+      // Loop until rd_status is updated
+      while ((rd_status & wr_status) != wr_status) {
+        OSPI_WriteBytes(hospi, 0x01, 0, wr_status, 1, SPI_MODE);
+        OSPI_ReadBytes(hospi, 0x05, &rd_status, 1);
+      }
+    } else if (vendor == VENDOR_ISSI) {
+      // Enable QPI mode
+      OSPI_WriteBytes(hospi, 0x35, 0, NULL, 0, SPI_MODE);
+    }
   }
 }
 
