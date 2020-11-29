@@ -54,7 +54,7 @@ openocd -f ${DIR}/adapter_config.cfg \
     -c "echo \"Resetting device\";" \
     -c "reset halt;" \
     -c "echo \"Programming ELF\";" \
-    -c "program ${ELF} verify;" \
+    -c "load_image ${ELF};" \
     -c "reset halt;" \
     -c "sleep 100;" \
     -c "echo \"Loading image into RAM\";" \
@@ -63,6 +63,8 @@ openocd -f ${DIR}/adapter_config.cfg \
     -c "mww ${VAR_program_address} ${ADDRESS}" \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "mww ${VAR_program_erase} ${ERASE}" \
+    -c "reg sp [mrw 0x20000000];" \
+    -c "reg pc [mrw 0x20000004];" \
     -c "echo \"Starting flash process\";" \
     -c "resume; exit;"
 

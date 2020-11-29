@@ -199,6 +199,53 @@ void  OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer,
   }
 }
 
+
+void _OSPI_Read(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
+{
+  uint8_t status;
+  OSPI_RegularCmdTypeDef  sCommand;
+
+  memset(&sCommand, 0x0, sizeof(sCommand));
+  sCommand.OperationType         = HAL_OSPI_OPTYPE_COMMON_CFG;
+  sCommand.FlashId               = 0;
+  sCommand.Instruction           = 0x0B; // FAST_READ
+  sCommand.InstructionSize       = HAL_OSPI_INSTRUCTION_8_BITS;
+  sCommand.Address               = address;
+  sCommand.AddressSize           = HAL_OSPI_ADDRESS_24_BITS;
+  sCommand.AlternateBytesMode    = HAL_OSPI_ALTERNATE_BYTES_NONE;
+  sCommand.NbData = buffer_size;
+  sCommand.DummyCycles           = 8;
+  sCommand.DQSMode               = HAL_OSPI_DQS_DISABLE;
+  sCommand.SIOOMode              = HAL_OSPI_SIOO_INST_ONLY_FIRST_CMD;
+  sCommand.InstructionDtrMode    = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
+
+  set_cmd_lines(&sCommand, g_quad_mode, g_vendor, 1, 1);
+
+  if(buffer_size > 256) {
+    Error_Handler();
+  }
+
+  if (HAL_OSPI_Command(hospi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if(HAL_OSPI_Receive(hospi, buffer, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
+    Error_Handler();
+  }
+}
+
+void OSPI_Read(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
+{
+  unsigned iterations = buffer_size / 256;
+  unsigned dest_page = address / 256;
+
+  for(int i = 0; i < iterations; i++) {
+    _OSPI_Read(hospi, (i + dest_page) * 256, buffer + (i * 256), buffer_size > 256 ? 256 : buffer_size);
+    buffer_size -= 256;
+  }
+}
+
 void  OSPI_NOR_WriteEnable(OSPI_HandleTypeDef *hospi)
 {
   OSPI_WriteBytes(hospi, 0x06, 0, NULL, 0, g_quad_mode);

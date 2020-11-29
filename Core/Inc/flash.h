@@ -15,6 +15,6 @@ typedef enum {
 
 void OSPI_Init(OSPI_HandleTypeDef *hospi, quad_mode_t quad_mode, spi_chip_vendor_t vendor);
 void OSPI_EnableMemoryMappedMode(OSPI_HandleTypeDef *hospi1);
-
+void OSPI_Read(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size);
 
 #endif

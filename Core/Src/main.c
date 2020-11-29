@@ -85,6 +85,16 @@ static void MX_NVIC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_Delay(uint32_t Delay)
+{
+  while (Delay--) {
+    // Accurate at 48MHz sysclock
+    for (int i = 0; i < 2 * 48000 / 3; i++) {
+      __NOP();
+    }
+  }
+}
 void lcd_backlight_off() {
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
@@ -137,8 +147,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_SPI2_Init();
+  // MX_SPI2_Init();
   MX_OCTOSPI1_Init();
+
 
   /* Initialize interrupts */
   MX_NVIC_Init();
