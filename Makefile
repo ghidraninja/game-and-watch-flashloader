@@ -110,8 +110,8 @@ AS_DEFS =
 # C defines
 C_DEFS =  \
 -DUSE_HAL_DRIVER \
--DSTM32H7B0xx
-
+-DSTM32H7B0xx \
+-DVECT_TAB_ITCM
 
 # AS includes
 AS_INCLUDES = 
