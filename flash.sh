@@ -63,8 +63,8 @@ openocd -f ${DIR}/adapter_config.cfg \
     -c "mww ${VAR_program_address} ${ADDRESS}" \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "mww ${VAR_program_erase} ${ERASE}" \
-    -c "reg sp [mrw 0x20000000];" \
-    -c "reg pc [mrw 0x20000004];" \
+    -c "reg sp [mrw 0x00000000];" \
+    -c "reg pc [mrw 0x00000004];" \
     -c "echo \"Starting flash process\";" \
     -c "resume; exit;"
 

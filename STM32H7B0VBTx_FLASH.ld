@@ -72,13 +72,13 @@ MEMORY
 SECTIONS
 {
   
-  /* The startup code goes first into FLASH */
+  /* The startup code goes first into ITCMRAM */
   .isr_vector :
   {
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
-  } >DTCMRAM
+  } >ITCMRAM
 
 
   .lcd :
@@ -95,7 +95,7 @@ SECTIONS
     _extflash = .;       /* define a global symbols to point at the external flash */
   } >EXTFLASH
 
-  /* The program code and other data goes into FLASH */
+  /* The program code and other data goes into ITCMRAM */
   .text :
   {
     . = ALIGN(4);
@@ -110,9 +110,9 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >DTCMRAM
+  } >ITCMRAM
 
-  /* Constant data goes into FLASH */
+  /* Constant data goes into DTCMRAM */
   .rodata :
   {
     . = ALIGN(4);
@@ -121,7 +121,7 @@ SECTIONS
     . = ALIGN(4);
   } >DTCMRAM
 
-  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
+  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >DTCMRAM
   .ARM : {
     __exidx_start = .;
     *(.ARM.exidx*)
@@ -156,12 +156,13 @@ SECTIONS
   .data : 
   {
     . = ALIGN(4);
+    /* Note: _sdata and _edata are placed together to disable data initialization from FLASH */
     _sdata = .;        /* create a global symbol at data start */
+    _edata = .;        /* define a global symbol at data end */
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */
 
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
   } >DTCMRAM
 
   
