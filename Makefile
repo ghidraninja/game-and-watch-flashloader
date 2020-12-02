@@ -31,6 +31,14 @@ OPT = -Og
 # Build path
 BUILD_DIR = build
 
+# Version and URL for the STM32CubeH7 SDK
+SDK_VERSION = v1.8.0
+SDK_URL = https://raw.githubusercontent.com/STMicroelectronics/STM32CubeH7
+
+# Local path for the SDK
+SDK_DIR = Drivers
+
+
 ######################################
 # source
 ######################################
@@ -39,6 +47,11 @@ C_SOURCES =  \
 Core/Src/main.c \
 Core/Src/stm32h7xx_it.c \
 Core/Src/stm32h7xx_hal_msp.c \
+Core/Src/system_stm32h7xx.c  \
+Core/Src/flash.c
+
+# SDK C sources
+SDK_C_SOURCES =  \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_ospi.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c \
@@ -60,12 +73,43 @@ Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c \
 Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c \
-Core/Src/system_stm32h7xx.c  \
-Core/Src/flash.c
 
-# ASM sources
-ASM_SOURCES =  \
-startup_stm32h7b0xx.s
+# SDK ASM sources
+SDK_ASM_SOURCES =  \
+Drivers/CMSIS/Device/ST/STM32H7xx/Source/Templates/gcc/startup_stm32h7b0xx.s
+
+# SDK headers
+SDK_HEADERS = \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_cortex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_def.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_dma.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_dma_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_exti.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_flash.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_flash_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_gpio.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_gpio_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hsem.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_i2c.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_i2c_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_mdma.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_ospi.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rcc.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rcc_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_spi_ex.h \
+Drivers/STM32H7xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h \
+Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h7xx.h \
+Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h7b0xx.h \
+Drivers/CMSIS/Device/ST/STM32H7xx/Include/system_stm32h7xx.h \
+Drivers/CMSIS/Include/core_cm7.h \
+Drivers/CMSIS/Include/cmsis_version.h \
+Drivers/CMSIS/Include/cmsis_compiler.h \
+Drivers/CMSIS/Include/cmsis_gcc.h \
+Drivers/CMSIS/Include/mpu_armv7.h
 
 
 #######################################
@@ -159,13 +203,23 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 # build the application
 #######################################
 # list of objects
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
-vpath %.c $(sort $(dir $(C_SOURCES)))
+OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o) $(SDK_C_SOURCES:.c=.o)))
+vpath %.c $(sort $(dir $(C_SOURCES) $(SDK_C_SOURCES)))
 # list of ASM program objects
-OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
-vpath %.s $(sort $(dir $(ASM_SOURCES)))
+OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(SDK_ASM_SOURCES:.s=.o)))
+vpath %.s $(sort $(dir $(SDK_ASM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
+# function used to generate prerequisite rules for SDK objects
+define sdk_obj_prereq_gen
+$(BUILD_DIR)/$(patsubst %.c,%.o,$(patsubst %.s,%.o,$(notdir $1))): $1
+
+endef
+# note: the blank line above is intentional
+
+# generate all object prerequisite rules
+$(eval $(foreach obj,$(SDK_C_SOURCES) $(SDK_ASM_SOURCES),$(call sdk_obj_prereq_gen,$(obj))))
+
+$(BUILD_DIR)/%.o: %.c Makefile $(SDK_HEADERS) | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -185,11 +239,23 @@ $(BUILD_DIR):
 	mkdir $@		
 
 #######################################
+# download SDK files
+#######################################
+$(SDK_DIR)/%:
+	wget $(SDK_URL)/$(SDK_VERSION)/$@ -P $(dir $@)
+
+.PHONY: download_sdk
+download_sdk: $(SDK_HEADERS) $(SDK_C_SOURCES) $(SDK_ASM_SOURCES)
+
+#######################################
 # clean up
 #######################################
 clean:
 	-rm -fR $(BUILD_DIR)
-  
+
+distclean: clean
+	rm -rf $(SDK_DIR)
+
 #######################################
 # dependencies
 #######################################
