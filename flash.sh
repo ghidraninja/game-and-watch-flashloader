@@ -39,7 +39,7 @@ function get_symbol {
 	name=$1
 	objdump_cmd="${objdump} -t ${ELF}"
 	size=$(${objdump_cmd} | grep " $name" | cut -d " " -f1 | tr 'a-f' 'A-F')
-	printf "ibase=16\n${size}\n" | bc
+	printf "$((16#${size}))\n"
 }
 
 
