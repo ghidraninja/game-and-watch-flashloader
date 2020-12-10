@@ -8,6 +8,7 @@ ADDRESS=0
 SIZE=$((1024 * 1024))
 MAGIC="0xdeadbeef"
 ERASE=1
+ADAPTER=${ADAPTER:-stlink}
 
 if [[ $# -lt 1 ]]; then
     echo "Usage: flash.sh <binary to flash> [address in flash] [size] [erase=1]"
@@ -50,12 +51,12 @@ VAR_program_erase=$(printf '0x%08x\n' $(get_symbol "program_erase"))
 
 
 echo "Loading image into RAM..."
-openocd -f ${DIR}/adapter_config.cfg \
+openocd -f ${DIR}/interface_${ADAPTER}.cfg \
+    -c "init;" \
     -c "echo \"Resetting device\";" \
     -c "reset halt;" \
     -c "echo \"Programming ELF\";" \
     -c "load_image ${ELF};" \
-    -c "reset halt;" \
     -c "sleep 100;" \
     -c "echo \"Loading image into RAM\";" \
     -c "load_image ${IMAGE} 0x24000000;" \
@@ -72,7 +73,7 @@ echo "Please wait til the screen blinks once per second."
 echo "(Rapid blinking means an error occured)"
 
 while true; do
-    DONE_MAGIC=$(openocd -f ${DIR}/adapter_config.cfg -c "mdw ${VAR_program_done}" -c "exit;" 2>&1 | grep ${VAR_program_done} | cut -d" " -f2)
+    DONE_MAGIC=$(openocd -f ${DIR}/interface_${ADAPTER}.cfg -c "init; mdw ${VAR_program_done}" -c "exit;" 2>&1 | grep ${VAR_program_done} | cut -d" " -f2)
     if [[ "$DONE_MAGIC" == "cafef00d" ]]; then
         echo "Done!"
         break;
