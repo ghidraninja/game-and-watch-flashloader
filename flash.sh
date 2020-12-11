@@ -5,7 +5,6 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ELF=${DIR}/build/gw_base.elf
 ADDRESS=0
-SIZE=$((1024 * 1024))
 MAGIC="0xdeadbeef"
 ERASE=1
 ADAPTER=${ADAPTER:-stlink}
@@ -27,6 +26,8 @@ fi
 
 if [[ $# -gt 2 ]]; then
     SIZE=$3
+else
+    SIZE=$(wc -c "$IMAGE" | cut -d" " -f1)
 fi
 
 if [[ $# -gt 3 ]]; then
