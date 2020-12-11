@@ -27,7 +27,7 @@ fi
 if [[ $# -gt 2 ]]; then
     SIZE=$3
 else
-    SIZE=$(wc -c "$IMAGE" | cut -d" " -f1)
+    SIZE=$(( 1024 * 1024 ))
 fi
 
 if [[ $# -gt 3 ]]; then
