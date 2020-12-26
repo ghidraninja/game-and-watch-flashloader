@@ -163,7 +163,7 @@ int main(void)
   program_done = 0;
 
   // SPI_MODE or QUAD_MODE
-  quad_mode_t quad_mode = QUAD_MODE;
+  quad_mode_t quad_mode = SPI_MODE;
 
   // VENDOR_MX:   MX25U8035F, Nintendo Stock Flash
   // VENDOR_ISSI: IS25WP128F, 128Mb large flash
