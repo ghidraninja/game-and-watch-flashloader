@@ -176,14 +176,18 @@ int main(void)
 
   // Set to 0 if you only want to enable flash read memory mapping
 #if 1
-  OSPI_NOR_WriteEnable(&hospi1);
 
   if (program_erase) {
     if (program_erase_blocks == 0) {
+      OSPI_NOR_WriteEnable(&hospi1);
       OSPI_ChipErase(&hospi1);
     } else {
       for (uint32_t block = 0; block < program_erase_blocks; block++) {
-        OSPI_BlockErase(&hospi1, block * 64 * 1024);
+        uint32_t address = block * 64 * 1024;
+
+        printf("Erasing block: 0x%08x\n", address);
+        OSPI_NOR_WriteEnable(&hospi1);
+        OSPI_BlockErase(&hospi1, address);
       }
     }
   }
