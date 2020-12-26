@@ -65,6 +65,9 @@ __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_
 // Control if chip should be erased or not
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase;
 
+// Number of 16KB blocks to be erased from flash address 0
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase_blocks;
+
 // Size of the flash
 // TODO: Make configurable from openocd
 // Number of address bits. 20=1M, 24=16M
@@ -176,7 +179,13 @@ int main(void)
   OSPI_NOR_WriteEnable(&hospi1);
 
   if (program_erase) {
-    OSPI_ChipErase(&hospi1);
+    if (program_erase_blocks == 0) {
+      OSPI_ChipErase(&hospi1);
+    } else {
+      for (uint32_t block = 0; block < program_erase_blocks; block++) {
+        OSPI_BlockErase(&hospi1, block * 64 * 1024);
+      }
+    }
   }
 
   uint32_t ram_address = 0x24000000;

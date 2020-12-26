@@ -24,6 +24,8 @@ fi
 FILESIZE=$(stat -c%s $IMAGE)
 CHUNKS=$(( FILESIZE / (1024*1024) ))
 SIZE=$((FILESIZE))
+BLOCK_SIZE=$(( 64 * 1024 ))
+ERASE_BLOCKS=0
 
 echo $CHUNKS
 
@@ -50,7 +52,13 @@ while [[ $SIZE -gt 0 ]]; do
     dd if=${IMAGE} of=${TMPFILE} bs=1024 count=$(( CHUNK_SIZE / 1024 )) skip=$(( i * 1024 ))
     
     echo "Flashing!"
-    ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE}
+    if [[ $ERASE -eq 1 ]]; then
+        ERASE_BLOCKS=$(( ( SIZE + BLOCK_SIZE - 1 ) / BLOCK_SIZE ))
+        echo "erasing $ERASE_BLOCKS"
+        ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BLOCKS}
+    else
+        ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} 0
+    fi
 
     # Skip erase the following iterations
     ERASE=0

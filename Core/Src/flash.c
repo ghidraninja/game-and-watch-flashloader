@@ -142,6 +142,39 @@ void OSPI_ChipErase(OSPI_HandleTypeDef *hospi)
 }
 
 
+void OSPI_BlockErase(OSPI_HandleTypeDef *hospi, uint32_t address)
+{
+  uint8_t status;
+  OSPI_RegularCmdTypeDef  sCommand;
+
+  memset(&sCommand, 0x0, sizeof(sCommand));
+  sCommand.OperationType         = HAL_OSPI_OPTYPE_COMMON_CFG;
+  sCommand.FlashId               = 0;
+  sCommand.Instruction           = 0xD8; // BE Block Erase
+  sCommand.InstructionSize       = HAL_OSPI_INSTRUCTION_8_BITS;
+  sCommand.Address               = address;
+  sCommand.AddressSize           = HAL_OSPI_ADDRESS_24_BITS;
+  sCommand.AlternateBytesMode    = HAL_OSPI_ALTERNATE_BYTES_NONE;
+  sCommand.NbData                = 0;
+  sCommand.DummyCycles           = 0;
+  sCommand.DQSMode               = HAL_OSPI_DQS_DISABLE;
+  sCommand.SIOOMode              = HAL_OSPI_SIOO_INST_ONLY_FIRST_CMD;
+  sCommand.InstructionDtrMode    = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
+
+  set_cmd_lines(&sCommand, g_quad_mode, g_vendor, 1, 0);
+
+  if (HAL_OSPI_Command(hospi, &sCommand, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  // Wait for Write In Progress Bit to be zero
+  do {
+    OSPI_ReadBytes(hospi, 0x05, &status, 1);
+  } while((status & 0x01) == 0x01);
+}
+
+
 
 void  _OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
 {
