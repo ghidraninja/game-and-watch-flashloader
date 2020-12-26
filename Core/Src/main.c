@@ -68,7 +68,7 @@ __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_
 // Size of the flash
 // TODO: Make configurable from openocd
 // Number of address bits. 20=1M, 24=16M
-uint32_t program_device_size = 20;
+uint32_t program_device_size = 24;
 
 
 /* USER CODE END PV */
