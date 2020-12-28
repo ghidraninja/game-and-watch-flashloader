@@ -10,6 +10,14 @@
 #   2015-07-22 - first version
 # ------------------------------------------------
 
+# To enable verbose, append VERBOSE=1 to make, e.g.:
+# make VERBOSE=1
+ifneq ($(strip $(VERBOSE)),1)
+V = @
+endif
+
+ECHO = echo
+
 ######################################
 # target
 ######################################
@@ -220,29 +228,35 @@ endef
 $(eval $(foreach obj,$(SDK_C_SOURCES) $(SDK_ASM_SOURCES),$(call sdk_obj_prereq_gen,$(obj))))
 
 $(BUILD_DIR)/%.o: %.c Makefile $(SDK_HEADERS) | $(BUILD_DIR) 
-	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+	$(V)$(ECHO) [ CC ] $(notdir $@)
+	$(V)$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	$(AS) -c $(CFLAGS) $< -o $@
+	$(V)$(ECHO) [ AS ] $(notdir $@)
+	$(V)$(AS) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
-	$(SZ) $@
+	$(V)$(ECHO) [ ELF ] $(notdir $@)
+	$(V)$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+	$(V)$(SZ) $@
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	$(HEX) $< $@
+	$(V)$(ECHO) [ HEX ] $(notdir $@)
+	$(V)$(HEX) $< $@
 	
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	$(BIN) $< $@	
+	$(V)$(ECHO) [ BIN ] $(notdir $@)
+	$(V)$(BIN) $< $@
 	
 $(BUILD_DIR):
-	mkdir $@		
+	$(V)mkdir $@
 
 #######################################
 # download SDK files
 #######################################
 $(SDK_DIR)/%:
-	wget $(SDK_URL)/$(SDK_VERSION)/$@ -P $(dir $@)
+	$(V)$(ECHO) [ WGET ] $(notdir $@)
+	$(V)wget -q $(SDK_URL)/$(SDK_VERSION)/$@ -P $(dir $@)
 
 .PHONY: download_sdk
 download_sdk: $(SDK_HEADERS) $(SDK_C_SOURCES) $(SDK_ASM_SOURCES)
