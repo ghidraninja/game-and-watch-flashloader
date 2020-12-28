@@ -1,4 +1,7 @@
+#include <string.h>
+
 #include "flash.h"
+#include "main.h"
 
 static quad_mode_t g_quad_mode = SPI_MODE;
 static spi_chip_vendor_t g_vendor = VENDOR_MX;
@@ -117,7 +120,7 @@ void OSPI_Init(OSPI_HandleTypeDef *hospi, quad_mode_t quad_mode, spi_chip_vendor
 
       // Loop until rd_status is updated
       while ((rd_status & wr_status) != wr_status) {
-        OSPI_WriteBytes(hospi, 0x01, 0, wr_status, 1, SPI_MODE);
+        OSPI_WriteBytes(hospi, 0x01, 0, &wr_status, 1, SPI_MODE);
         OSPI_ReadBytes(hospi, 0x05, &rd_status, 1);
       }
     } else if (vendor == VENDOR_ISSI) {
@@ -221,7 +224,8 @@ void  _OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer
   } while((status & 0x01) == 0x01);
 }
 
-void  OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size) {
+void OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
+{
   unsigned iterations = buffer_size / 256;
   unsigned dest_page = address / 256;
 
@@ -235,7 +239,6 @@ void  OSPI_Program(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer,
 
 void _OSPI_Read(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, size_t buffer_size)
 {
-  uint8_t status;
   OSPI_RegularCmdTypeDef  sCommand;
 
   memset(&sCommand, 0x0, sizeof(sCommand));
@@ -279,13 +282,14 @@ void OSPI_Read(OSPI_HandleTypeDef *hospi, uint32_t address, uint8_t *buffer, siz
   }
 }
 
-void  OSPI_NOR_WriteEnable(OSPI_HandleTypeDef *hospi)
+void OSPI_NOR_WriteEnable(OSPI_HandleTypeDef *hospi)
 {
   OSPI_WriteBytes(hospi, 0x06, 0, NULL, 0, g_quad_mode);
 }
 
 
-void OSPI_EnableMemoryMappedMode(OSPI_HandleTypeDef *spi) {
+void OSPI_EnableMemoryMappedMode(OSPI_HandleTypeDef *spi)
+{
   OSPI_MemoryMappedTypeDef sMemMappedCfg;
 
   OSPI_RegularCmdTypeDef sCommand = {
