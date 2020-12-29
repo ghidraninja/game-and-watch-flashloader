@@ -33,11 +33,9 @@ ERASE=1
 i=0
 while [[ $SIZE -gt 0 ]]; do
     ADDRESS_HEX=$(printf "0x%08x" $(( i * 1024 * 1024 ))) 
-    if [[ $SIZE -ge $((1024*1024)) ]]; then
-        echo less
+    if [[ $SIZE -gt $((1024*1024)) ]]; then
         CHUNK_SIZE=$((1024*1024))
     else
-        echo else
         CHUNK_SIZE=${SIZE}
     fi
     SIZE_HEX=$(printf "0x%08x" ${CHUNK_SIZE})
@@ -49,12 +47,18 @@ while [[ $SIZE -gt 0 ]]; do
     fi
 
     echo "Preparing chunk $i in file ${TMPFILE}"
-    dd if=${IMAGE} of=${TMPFILE} bs=1024 count=$(( CHUNK_SIZE / 1024 )) skip=$(( i * 1024 ))
+    dd if=${IMAGE} of=${TMPFILE} bs=1024 count=$(( (CHUNK_SIZE + 1023) / 1024 )) skip=$(( i * 1024 ))
+
+    if [[ $CHUNK_SIZE -le 8 ]]; then
+        echo "Chunk size <= 8 bytes, padding with zeros"
+        dd if=/dev/zero of=${TMPFILE} bs=1 count=$(( 9 - CHUNK_SIZE )) seek=${CHUNK_SIZE}
+    fi
     
     echo "Flashing!"
     if [[ $ERASE -eq 1 ]]; then
         ERASE_BLOCKS=$(( ( SIZE + BLOCK_SIZE - 1 ) / BLOCK_SIZE ))
         echo "erasing $ERASE_BLOCKS"
+        echo ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BLOCKS}
         ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BLOCKS}
     else
         ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} 0
