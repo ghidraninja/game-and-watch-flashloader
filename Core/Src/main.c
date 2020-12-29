@@ -69,7 +69,7 @@ __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase;
 
 // Number of 16KB blocks to be erased from flash address 0
-__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase_blocks;
+__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase_bytes;
 
 // Size of the flash
 // TODO: Make configurable from openocd
@@ -179,16 +179,26 @@ int main(void)
 #if 1
 
   if (program_erase) {
-    if (program_erase_blocks == 0) {
+    if (program_erase_bytes == 0) {
       OSPI_NOR_WriteEnable(&hospi1);
       OSPI_ChipErase(&hospi1);
     } else {
-      for (uint32_t block = 0; block < program_erase_blocks; block++) {
-        uint32_t address = block * 64 * 1024;
-
-        printf("Erasing block: 0x%08lx\n", address);
+      uint32_t address = 0;
+      while (program_erase_bytes > 0) {
         OSPI_NOR_WriteEnable(&hospi1);
-        OSPI_BlockErase(&hospi1, address);
+        if (program_erase_bytes >= 64*1024) {
+          printf("Erasing block (64kB): 0x%08lx\n", address);
+          OSPI_BlockErase(&hospi1, address);
+
+          program_erase_bytes -= 64*1024;
+          address += 64*1024;
+        } else {
+          printf("Erasing sector (4kB): 0x%08lx\n", address);
+          OSPI_SectorErase(&hospi1, address);
+
+          program_erase_bytes -= 4*1024;
+          address += 4*1024;
+        }
       }
     }
   }

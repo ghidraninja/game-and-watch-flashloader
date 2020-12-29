@@ -55,7 +55,7 @@ VAR_program_address=$(printf '0x%08x\n' $(get_symbol "program_address"))
 VAR_program_magic=$(printf '0x%08x\n' $(get_symbol "program_magic"))
 VAR_program_done=$(printf '0x%08x\n' $(get_symbol "program_done"))
 VAR_program_erase=$(printf '0x%08x\n' $(get_symbol "program_erase"))
-VAR_program_erase_blocks=$(printf '0x%08x\n' $(get_symbol "program_erase_blocks"))
+VAR_program_erase_bytes=$(printf '0x%08x\n' $(get_symbol "program_erase_bytes"))
 
 
 echo "Loading image into RAM..."
@@ -72,7 +72,7 @@ openocd -f ${DIR}/interface_${ADAPTER}.cfg \
     -c "mww ${VAR_program_address} ${ADDRESS}" \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "mww ${VAR_program_erase} ${ERASE}" \
-    -c "mww ${VAR_program_erase_blocks} ${ERASE_BLOCKS}" \
+    -c "mww ${VAR_program_erase_bytes} ${ERASE_BLOCKS}" \
     -c "reg sp [mrw 0x00000000];" \
     -c "reg pc [mrw 0x00000004];" \
     -c "echo \"Starting flash process\";" \
