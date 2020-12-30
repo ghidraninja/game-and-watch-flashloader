@@ -21,7 +21,13 @@ if [[ $# -gt 2 ]]; then
     SIZE=$3
 fi
 
-FILESIZE=$(stat -c%s $IMAGE)
+# stat on macOS has different flags
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    FILESIZE=$(stat -f%z $IMAGE)
+else 
+    FILESIZE=$(stat -c%s $IMAGE)
+fi
+
 CHUNKS=$(( FILESIZE / (1024*1024) ))
 SIZE=$((FILESIZE))
 SECTOR_SIZE=$(( 4 * 1024 ))
