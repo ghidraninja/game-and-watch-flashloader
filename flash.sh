@@ -59,7 +59,7 @@ VAR_program_erase_bytes=$(printf '0x%08x\n' $(get_symbol "program_erase_bytes"))
 
 
 echo "Loading image into RAM..."
-openocd -f ${DIR}/interface_${ADAPTER}.cfg \
+${OPENOCD} -f ${DIR}/interface_${ADAPTER}.cfg \
     -c "init;" \
     -c "echo \"Resetting device\";" \
     -c "reset halt;" \
@@ -82,7 +82,7 @@ echo "Please wait til the screen blinks once per second."
 echo "(Rapid blinking means an error occured)"
 
 while true; do
-    DONE_MAGIC=$(openocd -f ${DIR}/interface_${ADAPTER}.cfg -c "init; mdw ${VAR_program_done}" -c "exit;" 2>&1 | grep ${VAR_program_done} | cut -d" " -f2)
+    DONE_MAGIC=$(${OPENOCD} -f ${DIR}/interface_${ADAPTER}.cfg -c "init; mdw ${VAR_program_done}" -c "exit;" 2>&1 | grep ${VAR_program_done} | cut -d" " -f2)
     if [[ "$DONE_MAGIC" == "cafef00d" ]]; then
         echo "Done!"
         break;
