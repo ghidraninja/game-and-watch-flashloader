@@ -1,6 +1,10 @@
 #!/bin/bash
 
-set -e
+if [[ "$VERBOSE" == "1" ]]; then
+    set -ex
+else
+    set -e
+fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ELF=${DIR}/build/gw_base.elf
