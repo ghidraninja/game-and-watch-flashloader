@@ -50,7 +50,11 @@ if [[ $# -gt 4 ]]; then
     ERASE_BLOCKS=$5
 fi
 
-objdump=${OBJDUMP:-arm-none-eabi-objdump}
+if [[ "${GCC_PATH}" != "" ]]; then
+	DEFAULT_OBJDUMP=${GCC_PATH}/arm-none-eabi-objdump
+else
+	DEFAULT_OBJDUMP=arm-none-eabi-objdump
+fi
 
 function get_symbol {
 	name=$1
