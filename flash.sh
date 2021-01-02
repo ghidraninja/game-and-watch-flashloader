@@ -56,9 +56,11 @@ else
 	DEFAULT_OBJDUMP=arm-none-eabi-objdump
 fi
 
+OBJDUMP=${OBJDUMP:-$DEFAULT_OBJDUMP}
+
 function get_symbol {
 	name=$1
-	objdump_cmd="${objdump} -t ${ELF}"
+	objdump_cmd="${OBJDUMP} -t ${ELF}"
 	size=$(${objdump_cmd} | grep " $name$" | cut -d " " -f1 | tr 'a-f' 'A-F' | head -n 1)
 	printf "$((16#${size}))\n"
 }
