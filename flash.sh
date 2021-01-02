@@ -11,7 +11,7 @@ ELF=${DIR}/build/gw_base.elf
 ADDRESS=0
 MAGIC="0xdeadbeef"
 
-OPENOCD=${OPENOCD:-$(which openocd)}
+OPENOCD=${OPENOCD:-$(which openocd || true)}
 
 if [[ -z ${OPENOCD} ]]; then
   echo "Cannot find 'openocd' in the PATH. You can set the environment variable 'OPENOCD' to manually specify the location"
