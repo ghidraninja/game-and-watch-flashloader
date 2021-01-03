@@ -63,7 +63,7 @@ while [[ $SIZE -gt 0 ]]; do
         echo "Chunk size <= 8 bytes, padding with zeros"
         dd if=/dev/zero of=${TMPFILE} bs=1 count=$(( 9 - CHUNK_SIZE )) seek=${CHUNK_SIZE}
     fi
-    
+
     echo "Flashing!"
     if [[ $ERASE -eq 1 ]]; then
         ERASE_BYTES=$(( (( SIZE + SECTOR_SIZE - 1 ) / SECTOR_SIZE) * SECTOR_SIZE ))
@@ -73,15 +73,15 @@ while [[ $SIZE -gt 0 ]]; do
 
     # Try to flash 3 times, give up after that.
     COUNT=3
-    for i in $(seq $COUNT); do
-        if [[ $i -gt 1 ]]; then
-            echo "Flashing failed, retry count $i/3"
+    for RETRY_COUNT in $(seq $COUNT); do
+        if [[ $RETRY_COUNT -gt 1 ]]; then
+            echo "Flashing failed, retry count $RETRY_COUNT/3"
         fi
 
         ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BYTES} && break
     done
 
-    if [[ $i -eq 3 ]]; then
+    if [[ $RETRY_COUNT -eq 3 ]]; then
         echo ""
         echo ""
         echo "Programming of the external flash FAILED after 3 tries."
@@ -89,6 +89,12 @@ while [[ $SIZE -gt 0 ]]; do
         echo ""
         echo ""
         exit 1
+    else 
+        echo ""
+        echo ""
+        echo "Programming of chunk $RETRY_COUNT succeeded."
+        echo ""
+        echo ""
     fi
 
     # Skip erase the following iterations
