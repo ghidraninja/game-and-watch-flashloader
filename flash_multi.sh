@@ -69,9 +69,26 @@ while [[ $SIZE -gt 0 ]]; do
         ERASE_BYTES=$(( (( SIZE + SECTOR_SIZE - 1 ) / SECTOR_SIZE) * SECTOR_SIZE ))
         echo "erasing $ERASE_BYTES"
         echo ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BYTES}
-        ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BYTES}
-    else
-        ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} 0
+    fi
+
+    # Try to flash 3 times, give up after that.
+    COUNT=3
+    for i in $(seq $COUNT); do
+        if [[ $i -gt 1 ]]; then
+            echo "Flashing failed, retry count $i/3"
+        fi
+
+        ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BYTES} && break
+    done
+
+    if [[ $i -eq 3 ]]; then
+        echo ""
+        echo ""
+        echo "Programming of the external flash FAILED after 3 tries."
+        echo "Please check your debugger and wires connecting to the target."
+        echo ""
+        echo ""
+        exit 1
     fi
 
     # Skip erase the following iterations
@@ -83,3 +100,8 @@ while [[ $SIZE -gt 0 ]]; do
     i=$(( i + 1 ))
 done
 
+echo ""
+echo ""
+echo "Programming of the external flash succeeded."
+echo ""
+echo ""
