@@ -23,12 +23,12 @@ OPENOCD_VERSION=$(${OPENOCD} -v 2> >(cut -f 4 -d" " ) |head -1)
 ADAPTER=${ADAPTER:-stlink}
 
 if [[ $# -lt 1 ]]; then
-    echo "Usage: flash.sh <binary to flash> [address in flash] [size] [erase=1] [erase_blocks=0]"
+    echo "Usage: flash.sh <binary to flash> [address in flash] [size] [erase=1] [erase_bytes=0]"
     echo "Note! Destination address must be aligned to 256 bytes."
     echo "'address in flash': Where to program to. 0x000000 is the start of the flash. "
     echo "'size': Size of the binary to flash. Ideally aligned to 256 bytes."
     echo "'erase': If '0', chip erase will be skipped. Default '1'."
-    echo "'erase_blocks': Number of 16KB blocks to erase, all if '0'. Default '0'."
+    echo "'erase_bytes': Number of bytes to erase, all if '0'. Default '0'."
     exit
 fi
 
@@ -49,9 +49,9 @@ if [[ $# -gt 3 ]]; then
     ERASE=$4
 fi
 
-ERASE_BLOCKS=0
+ERASE_BYTES=0
 if [[ $# -gt 4 ]]; then
-    ERASE_BLOCKS=$5
+    ERASE_BYTES=$5
 fi
 
 HASH_FILE=$(mktemp /tmp/sha256_hash.XXXXXX)
@@ -100,7 +100,7 @@ ${OPENOCD} -f ${DIR}/interface_${ADAPTER}.cfg \
     -c "mww ${VAR_program_address} ${ADDRESS}" \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "mww ${VAR_program_erase} ${ERASE}" \
-    -c "mww ${VAR_program_erase_bytes} ${ERASE_BLOCKS}" \
+    -c "mww ${VAR_program_erase_bytes} ${ERASE_BYTES}" \
     -c "load_image ${HASH_FILE} ${VAR_program_expected_sha256};" \
     -c "reg sp [mrw 0x00000000];" \
     -c "reg pc [mrw 0x00000004];" \
