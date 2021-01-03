@@ -54,6 +54,13 @@ if [[ $# -gt 4 ]]; then
     ERASE_BLOCKS=$5
 fi
 
+HASH_FILE=$(mktemp /tmp/sha256_hash.XXXXXX)
+if [[ ! -e ${HASH_FILE} ]]; then
+    echo "Can't create tempfile!"
+    exit 1
+fi
+sha256sum "${IMAGE}" | cut -d " " -f1 > ${HASH_FILE}
+
 if [[ "${GCC_PATH}" != "" ]]; then
 	DEFAULT_OBJDUMP=${GCC_PATH}/arm-none-eabi-objdump
 else
@@ -76,6 +83,7 @@ VAR_program_magic=$(printf '0x%08x\n' $(get_symbol "program_magic"))
 VAR_program_done=$(printf '0x%08x\n' $(get_symbol "program_done"))
 VAR_program_erase=$(printf '0x%08x\n' $(get_symbol "program_erase"))
 VAR_program_erase_bytes=$(printf '0x%08x\n' $(get_symbol "program_erase_bytes"))
+VAR_program_expected_sha256=$(printf '0x%08x\n' $(get_symbol "program_expected_sha256"))
 
 
 echo "Loading image into RAM..."
@@ -93,10 +101,14 @@ ${OPENOCD} -f ${DIR}/interface_${ADAPTER}.cfg \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "mww ${VAR_program_erase} ${ERASE}" \
     -c "mww ${VAR_program_erase_bytes} ${ERASE_BLOCKS}" \
+    -c "load_image ${HASH_FILE} ${VAR_program_expected_sha256};" \
     -c "reg sp [mrw 0x00000000];" \
     -c "reg pc [mrw 0x00000004];" \
     -c "echo \"Starting flash process\";" \
     -c "resume; exit;"
+
+# Remove the temporary hash file
+rm -f ${HASH_FILE}
 
 echo "Please wait til the screen blinks once per second."
 echo "(Rapid blinking means an error occured)"
@@ -106,6 +118,12 @@ while true; do
     if [[ "$DONE_MAGIC" == "cafef00d" ]]; then
         echo "Done!"
         break;
+    elif [[ "$DONE_MAGIC" == "badcafee" ]]; then
+        echo "Hash mismatch in RAM. Flashing failed."
+        exit 3;
+    elif [[ "$DONE_MAGIC" == "badf000d" ]]; then
+        echo "Hash mismatch in FLASH. Flashing failed."
+        exit 3;
     fi
     sleep 1
 done

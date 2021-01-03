@@ -27,6 +27,7 @@
 
 #include "buttons.h"
 #include "flash.h"
+#include "sha256.h"
 
 /* USER CODE END Includes */
 
@@ -70,6 +71,12 @@ __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_
 
 // Number of 16KB blocks to be erased from flash address 0
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase_bytes;
+
+// The expected sha256 of the loaded binary
+__attribute__((used)) __attribute__((section (".persistent"))) uint8_t program_expected_sha256[128];
+
+// The calculated sha256 of the external flash after programming
+__attribute__((used)) __attribute__((section (".persistent"))) uint8_t program_calculated_sha256[128];
 
 // Size of the flash
 // TODO: Make configurable from openocd
@@ -166,6 +173,18 @@ int main(void)
 
   program_done = 0;
 
+  uint32_t ram_address = 0x24000000;
+  uint8_t *ram = (uint8_t*)ram_address;
+
+  // Calculate sha256 hash of the RAM first
+  sha256_to_string(program_calculated_sha256, (const BYTE*) ram, program_size);
+
+  if (strncmp((char *)program_calculated_sha256, (char *)program_expected_sha256, 64) != 0) {
+    // Hashes don't match even in RAM, openocd loading failed.
+    program_done = 0xbadcafee;
+    Error_Handler();
+  }
+
   // SPI_MODE or QUAD_MODE
   quad_mode_t quad_mode = SPI_MODE;
 
@@ -203,12 +222,19 @@ int main(void)
     }
   }
 
-  uint32_t ram_address = 0x24000000;
-  uint8_t *ram = (uint8_t*)ram_address;
   OSPI_Program(&hospi1, program_address, ram, program_size);
 #endif
 
   OSPI_EnableMemoryMappedMode(&hospi1);
+
+  // Calculate sha256 hash of the external flash
+  sha256_to_string(program_calculated_sha256, (const BYTE*) (0x90000000 + program_address), program_size);
+
+  if (strncmp((char *)program_calculated_sha256, (char *)program_expected_sha256, 64) != 0) {
+    // Hashes don't match, programming failed
+    program_done = 0xbadf000d;
+    Error_Handler();
+  }
 
   // Flashing done!
   program_done = 0xcafef00d;

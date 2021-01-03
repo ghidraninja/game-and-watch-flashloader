@@ -56,7 +56,8 @@ Core/Src/main.c \
 Core/Src/stm32h7xx_it.c \
 Core/Src/stm32h7xx_hal_msp.c \
 Core/Src/system_stm32h7xx.c  \
-Core/Src/flash.c
+Core/Src/flash.c \
+Core/Src/sha256.c
 
 # SDK C sources
 SDK_C_SOURCES =  \
