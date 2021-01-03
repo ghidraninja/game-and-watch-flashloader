@@ -54,12 +54,20 @@ if [[ $# -gt 4 ]]; then
     ERASE_BYTES=$5
 fi
 
-HASH_FILE=$(mktemp /tmp/sha256_hash.XXXXXX)
-if [[ ! -e ${HASH_FILE} ]]; then
+HASH_HEX_FILE=$(mktemp /tmp/sha256_hash_hex.XXXXXX)
+if [[ ! -e "${HASH_HEX_FILE}" ]]; then
     echo "Can't create tempfile!"
     exit 1
 fi
-sha256sum "${IMAGE}" | cut -d " " -f1 > ${HASH_FILE}
+
+HASH_FILE=$(mktemp /tmp/sha256_hash.XXXXXX)
+if [[ ! -e "${HASH_FILE}" ]]; then
+    echo "Can't create tempfile!"
+    exit 1
+fi
+dd if="${IMAGE}" of="${HASH_FILE}" bs=1 count=$(( SIZE ))
+sha256sum "${HASH_FILE}" | cut -d " " -f1 > "${HASH_HEX_FILE}"
+rm -f "${HASH_FILE}"
 
 if [[ "${GCC_PATH}" != "" ]]; then
 	DEFAULT_OBJDUMP=${GCC_PATH}/arm-none-eabi-objdump
@@ -101,14 +109,14 @@ ${OPENOCD} -f ${DIR}/interface_${ADAPTER}.cfg \
     -c "mww ${VAR_program_magic} ${MAGIC}" \
     -c "mww ${VAR_program_erase} ${ERASE}" \
     -c "mww ${VAR_program_erase_bytes} ${ERASE_BYTES}" \
-    -c "load_image ${HASH_FILE} ${VAR_program_expected_sha256};" \
+    -c "load_image ${HASH_HEX_FILE} ${VAR_program_expected_sha256};" \
     -c "reg sp [mrw 0x00000000];" \
     -c "reg pc [mrw 0x00000004];" \
     -c "echo \"Starting flash process\";" \
     -c "resume; exit;"
 
-# Remove the temporary hash file
-rm -f ${HASH_FILE}
+# Remove the temporary hash files
+rm -f "${HASH_HEX_FILE}"
 
 echo "Please wait til the screen blinks once per second."
 echo "(Rapid blinking means an error occured)"

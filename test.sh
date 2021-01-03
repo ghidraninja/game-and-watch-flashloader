@@ -18,7 +18,13 @@ for exp in $(seq 3 24); do
 done
 
 for size in $sizes ; do
+    echo "----------------------------------------"
+    echo "----------------------------------------"
+    echo "----------------------------------------"
     echo "Testing with size = $size"
+    echo "----------------------------------------"
+    echo "----------------------------------------"
+    echo "----------------------------------------"
     rm -f $TMPFILE
     dd if=/dev/urandom of=$TMPFILE bs=1 count=$size
     ./flash_multi.sh $TMPFILE
