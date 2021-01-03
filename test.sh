@@ -21,5 +21,5 @@ for size in $sizes ; do
     echo "Testing with size = $size"
     rm -f $TMPFILE
     dd if=/dev/urandom of=$TMPFILE bs=1 count=$size
-    ../flash_multi.sh $TMPFILE
+    ./flash_multi.sh $TMPFILE
 done
