@@ -15,7 +15,7 @@
 /*************************** HEADER FILES ***************************/
 #include <stdlib.h>
 #include <stdio.h>
-#include <memory.h>
+#include <string.h>
 #include "sha256.h"
 
 /****************************** MACROS ******************************/
