@@ -92,7 +92,7 @@ while [[ $SIZE -gt 0 ]]; do
     else 
         echo ""
         echo ""
-        echo "Programming of chunk $RETRY_COUNT succeeded."
+        echo "Programming of chunk $i succeeded."
         echo ""
         echo ""
     fi
