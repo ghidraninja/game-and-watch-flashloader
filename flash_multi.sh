@@ -75,7 +75,14 @@ while [[ $SIZE -gt 0 ]]; do
     COUNT=3
     for RETRY_COUNT in $(seq $COUNT); do
         if [[ $RETRY_COUNT -gt 1 ]]; then
-            echo "Flashing failed, retry count $RETRY_COUNT/3"
+            echo "Flashing chunk $i failed... power cycle unit and retry? (y/n)"
+            read -n 1 -r
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Aborted."
+                exit 1
+            fi
+
+            echo "Retry count $RETRY_COUNT/3"
         fi
 
         ${DIR}/flash.sh ${TMPFILE} ${ADDRESS_HEX} ${SIZE_HEX} ${ERASE} ${ERASE_BYTES} && break
