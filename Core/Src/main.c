@@ -70,7 +70,7 @@ __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_
 __attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase;
 
 // Number of 16KB blocks to be erased from flash address 0
-__attribute__((used)) __attribute__((section (".persistent"))) uint32_t program_erase_bytes;
+__attribute__((used)) __attribute__((section (".persistent"))) int32_t program_erase_bytes;
 
 // The expected sha256 of the loaded binary
 __attribute__((used)) __attribute__((section (".persistent"))) uint8_t program_expected_sha256[128];
@@ -202,21 +202,22 @@ int main(void)
       OSPI_NOR_WriteEnable(&hospi1);
       OSPI_ChipErase(&hospi1);
     } else {
-      uint32_t address = 0;
+      uint32_t address = program_address;
       while (program_erase_bytes > 0) {
         OSPI_NOR_WriteEnable(&hospi1);
-        if (program_erase_bytes >= 64*1024) {
-          printf("Erasing block (64kB): 0x%08lx\n", address);
-          OSPI_BlockErase(&hospi1, address);
-
-          program_erase_bytes -= 64*1024;
-          address += 64*1024;
-        } else {
+        if ((address & 0xFFFF) || (program_erase_bytes < 64*1024)) {
+          // Erase 4K blocks in case the address is not 64kB aligned or less than 64kB to erase
           printf("Erasing sector (4kB): 0x%08lx\n", address);
           OSPI_SectorErase(&hospi1, address);
 
           program_erase_bytes -= 4*1024;
           address += 4*1024;
+        } else if (program_erase_bytes >= 64*1024) {
+          printf("Erasing block (64kB): 0x%08lx\n", address);
+          OSPI_BlockErase(&hospi1, address);
+
+          program_erase_bytes -= 64*1024;
+          address += 64*1024;
         }
       }
     }
