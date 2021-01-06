@@ -12,13 +12,16 @@ ADDRESS=0
 MAGIC="0xdeadbeef"
 
 OPENOCD=${OPENOCD:-$(which openocd || true)}
-
-if [[ -z ${OPENOCD} ]]; then
+if [[ -z "${OPENOCD}" ]]; then
   echo "Cannot find 'openocd' in the PATH. You can set the environment variable 'OPENOCD' to manually specify the location"
   exit 2
 fi
 
-OPENOCD_VERSION=$(${OPENOCD} -v 2> >(cut -f 4 -d" " ) |head -1)
+SHA256SUM=${SHA256SUM:-$(which sha256sum || true)}
+if [[ -z "${SHA256SUM}" ]]; then
+  echo "Cannot find 'sha256sum' in the PATH. You can set the environment variable 'SHA256SUM' to manually specify the location"
+  exit 2
+fi
 
 ADAPTER=${ADAPTER:-stlink}
 
@@ -66,7 +69,7 @@ if [[ ! -e "${HASH_FILE}" ]]; then
     exit 1
 fi
 dd if="${IMAGE}" of="${HASH_FILE}" bs=1 count=$(( SIZE ))
-sha256sum "${HASH_FILE}" | cut -d " " -f1 > "${HASH_HEX_FILE}"
+${SHA256SUM} "${HASH_FILE}" | cut -d " " -f1 > "${HASH_HEX_FILE}"
 rm -f "${HASH_FILE}"
 
 if [[ "${GCC_PATH}" != "" ]]; then
