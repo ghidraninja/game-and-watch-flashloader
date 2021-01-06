@@ -17,11 +17,21 @@ if [[ -z "${OPENOCD}" ]]; then
   exit 2
 fi
 
-SHA256SUM=${SHA256SUM:-$(which sha256sum || true)}
-if [[ -z "${SHA256SUM}" ]]; then
-  echo "Cannot find 'sha256sum' in the PATH. You can set the environment variable 'SHA256SUM' to manually specify the location"
-  exit 2
-fi
+# $1: file to hash
+# $2: file to write hash to in hex
+function calc_sha256sum() {
+    SHA256SUM=${SHA256SUM:-$(which sha256sum || true)}
+    OPENSSL=${OPENSSL:-$(which openssl || true)}
+
+    if [[ ! -z "${SHA256SUM}" ]]; then
+        ${SHA256SUM} "$1" | cut -d " " -f1 > "$2"
+    elif [[ ! -z "${OPENSSL}" ]]; then
+        ${OPENSSL} sha256 "$1" | cut -d " " -f2 > "$2"
+    else
+        echo "Cannot find 'sha256sum' or 'openssl' in the PATH. You can set the environment variables 'SHA256SUM' or 'OPENSSL' to manually specify the location to either tool. Only one of the tools are needed."
+        exit 2
+    fi
+}
 
 ADAPTER=${ADAPTER:-stlink}
 
@@ -69,7 +79,7 @@ if [[ ! -e "${HASH_FILE}" ]]; then
     exit 1
 fi
 dd if="${IMAGE}" of="${HASH_FILE}" bs=1 count=$(( SIZE ))
-${SHA256SUM} "${HASH_FILE}" | cut -d " " -f1 > "${HASH_HEX_FILE}"
+calc_sha256sum "${HASH_FILE}" "${HASH_HEX_FILE}"
 rm -f "${HASH_FILE}"
 
 if [[ "${GCC_PATH}" != "" ]]; then
