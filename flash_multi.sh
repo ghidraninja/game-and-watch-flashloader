@@ -10,15 +10,25 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ELF=${DIR}/build/gw_base.elf
 
 if [[ $# -lt 1 ]]; then
-    echo "Usage: flash_multi.sh <binary to flash> [address=0]"
+    echo "Usage: flash_multi.sh <binary to flash> [address=0] [chip_erase=0]"
+    echo ""
+    echo "address:    The address to start writing to in the flash. Default is 0."
+    echo "chip_erase: Forces the use of chip erase. Will erase the whole chip,"
+    echo "            but may be faster for large flash chips."
+    echo ""
     echo "Note! This will cut the binary in 1M chunks and flash them to address and onwards"
     exit
 fi
 
 IMAGE="$1"
-
+ADDRESS=0
 if [[ $# -gt 1 ]]; then
     ADDRESS=$2
+fi
+
+CHIP_ERASE=0
+if [[ $# -gt 2 ]]; then
+    CHIP_ERASE=$3
 fi
 
 # stat on macOS has different flags
@@ -61,7 +71,11 @@ while [[ $SIZE -gt 0 ]]; do
     fi
 
     echo "Flashing!"
-    ERASE_BYTES=$(( (( SIZE + SECTOR_SIZE - 1 ) / SECTOR_SIZE) * SECTOR_SIZE ))
+    if [[ $CHIP_ERASE == 1 ]]; then
+        ERASE_BYTES=0
+    else
+        ERASE_BYTES=$(( (( SIZE + SECTOR_SIZE - 1 ) / SECTOR_SIZE) * SECTOR_SIZE ))
+    fi
 
     # Try to flash 3 times, give up after that.
     COUNT=3
