@@ -1,5 +1,17 @@
 #!/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+function echo_green() {
+    echo -e "${GREEN}${@}${NC}"
+}
+
+function echo_red() {
+    echo -e "${RED}${@}${NC}"
+}
+
 if [[ "$VERBOSE" == "1" ]]; then
     set -ex
 else
@@ -38,12 +50,10 @@ else
     FILESIZE=$(stat -c%s "${IMAGE}")
 fi
 
-CHUNKS=$(( FILESIZE / (1024*1024) ))
+CHUNKS=$(( (FILESIZE + 1024 * 1024 - 1) / (1024 * 1024) ))
 SIZE=$((FILESIZE))
 SECTOR_SIZE=$(( 4 * 1024 ))
 ERASE_BYTES=0
-
-echo $CHUNKS
 
 ERASE=1
 i=0
@@ -62,15 +72,15 @@ while [[ $SIZE -gt 0 ]]; do
         exit 1
     fi
 
-    echo "Preparing chunk $i in file ${TMPFILE}"
-    dd if="${IMAGE}" of="${TMPFILE}" bs=1024 count=$(( (CHUNK_SIZE + 1023) / 1024 )) skip=$(( i * 1024 ))
+    echo_green "Preparing chunk $((i + 1)) / ${CHUNKS} in file ${TMPFILE}"
+    dd if="${IMAGE}" of="${TMPFILE}" bs=1024 count=$(( (CHUNK_SIZE + 1023) / 1024 )) skip=$(( i * 1024 )) 2> /dev/null
 
     if [[ $CHUNK_SIZE -le 8 ]]; then
         echo "Chunk size <= 8 bytes, padding with zeros"
-        dd if=/dev/zero of=${TMPFILE} bs=1 count=$(( 9 - CHUNK_SIZE )) seek=${CHUNK_SIZE}
+        dd if=/dev/zero of=${TMPFILE} bs=1 count=$(( 9 - CHUNK_SIZE )) seek=${CHUNK_SIZE} 2> /dev/null
     fi
 
-    echo "Flashing!"
+    echo_green "Flashing!"
     if [[ $CHIP_ERASE == 1 ]]; then
         ERASE_BYTES=0
     else
@@ -81,13 +91,14 @@ while [[ $SIZE -gt 0 ]]; do
     COUNT=3
     for RETRY_COUNT in $(seq $COUNT); do
         if [[ $RETRY_COUNT -gt 1 ]]; then
-            echo "Flashing chunk $i failed... power cycle unit and retry? (y/n)"
+            echo_red "Flashing chunk $i failed... power cycle unit and retry? (y/n)"
             read -n 1 -r
             if [[ ! $REPLY =~ ^[Yy]$ ]]; then
                 echo "Aborted."
                 exit 1
             fi
 
+            echo ""
             echo "Retry count $RETRY_COUNT/3"
         fi
 
@@ -97,15 +108,15 @@ while [[ $SIZE -gt 0 ]]; do
     if [[ $RETRY_COUNT -eq 3 ]]; then
         echo ""
         echo ""
-        echo "Programming of the external flash FAILED after 3 tries."
-        echo "Please check your debugger and wires connecting to the target."
+        echo_red "Programming of the external flash FAILED after 3 tries."
+        echo_red "Please check your debugger and wires connecting to the target."
         echo ""
         echo ""
         exit 1
     else 
         echo ""
         echo ""
-        echo "Programming of chunk $i succeeded."
+        echo_green "Programming of chunk $((i + 1)) / ${CHUNKS} succeeded."
         echo ""
         echo ""
     fi
@@ -120,8 +131,6 @@ while [[ $SIZE -gt 0 ]]; do
     i=$(( i + 1 ))
 done
 
-echo ""
-echo ""
-echo "Programming of the external flash succeeded."
+echo_green "Programming of the external flash succeeded."
 echo ""
 echo ""

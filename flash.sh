@@ -78,7 +78,7 @@ if [[ ! -e "${HASH_FILE}" ]]; then
     echo "Can't create tempfile!"
     exit 1
 fi
-dd if="${IMAGE}" of="${HASH_FILE}" bs=1 count=$(( SIZE ))
+dd if="${IMAGE}" of="${HASH_FILE}" bs=1 count=$(( SIZE )) 2> /dev/null
 calc_sha256sum "${HASH_FILE}" "${HASH_HEX_FILE}"
 rm -f "${HASH_FILE}"
 
